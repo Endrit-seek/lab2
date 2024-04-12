@@ -13,26 +13,30 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-
         User::create([
-            'name' => 'User',
-            'email' => 'user@gmail.com',
-            'email_verified_at' => now(), 
-            'password' => Hash::make('User123.'), 
-            'remember_token' => Str::random(10), 
-            'created_at' => now(), 
-            'updated_at' => now(), 
+            'name' => 'Admin',
+            'email' => 'admin@gmail.com',
+            'password' => Hash::make('Admin123.')
         ]);
 
+        User::create([
+            'name' => 'Student',
+            'email' => 'student@gmail.com',
+            'password' => Hash::make('Student123.')
+        ]);
+
+        User::create([
+            'name' => 'Instructor',
+            'email' => 'isntructor@gmail.com',
+            'password' => Hash::make('Instructor123.')
+        ]);
+
+        // Add three employee users
         for ($i = 0; $i < 10; $i++) {
             User::create([
-                'name' => 'User ' . ($i + 1),
+                'name' => 'User' . ($i + 1),
                 'email' => 'user' . ($i + 1) . '@example.com',
-                'email_verified_at' => now(), 
-                'password' => Hash::make('password'), 
-                'remember_token' => Str::random(10), 
-                'created_at' => now(), 
-                'updated_at' => now(), 
+                'password' => Hash::make('User123.')
             ]);
         }
     }
