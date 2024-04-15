@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use App\Models\User;
 use App\Models\Role;
+use Illuminate\Support\Facades\Password;
 
 class UserController extends Controller
 {
@@ -95,7 +96,81 @@ class UserController extends Controller
         return response()->json(['message' => 'Successfully logged out']);
     }
 
-    public function forgotPassword(){
-        return 'forgotPassword';
+    public function forgotPassword(Request $request){
+        // Validate request
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|exists:users,email',
+        ]);
+    
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+        try {
+            // Send reset link
+            $status = Password::sendResetLink($request->only('email'));
+            
+            // Check the status of the reset link sending
+            if ($status == Password::RESET_LINK_SENT) {
+                return response()->json([
+                    'message' => 'Password reset link sent to your email.',
+                ]);
+            } else {
+                // Handle the case where the reset link could not be sent
+                return response()->json([
+                    'error' => 'Failed to send password reset link.',
+                    'status' => $status, // Provide the status code for further context
+                ], 400);
+            }
+        } catch (\Exception $e) {
+            // Catch any exceptions and return a detailed error message
+            return response()->json([
+                'error' => 'An unexpected error occurred while sending the password reset link.',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    
+    public function resetPassword(Request $request)
+    {
+        // Validate the request data
+        $validator = Validator::make($request->all(), [
+            'token' => 'required',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        // Reset the user's password
+        $status = Password::reset([
+            'token' => $request->token,
+            'email' => $request->email,
+            'password' => $request->password,
+            'password_confirmation' => $request->password_confirmation,
+        ], function ($user, $password) {
+            $user->password = bcrypt($password);
+            $user->save();
+
+            // Fire a password reset event
+            event(new \Illuminate\Auth\Events\PasswordReset($user));
+        });
+
+        // Check the status of the password reset
+        if ($status == Password::PASSWORD_RESET) {
+            return response()->json([
+                'message' => 'Password has been reset successfully.',
+            ]);
+        } else {
+            return response()->json([
+                'error' => 'Failed to reset password.',
+                'status' => $status, // Provide the status code for further context
+            ], 400);
+        }
     }
 }
